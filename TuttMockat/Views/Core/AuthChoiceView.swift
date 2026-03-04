@@ -84,14 +84,17 @@ struct AuthChoiceView: View {
                 let givenName = credential.fullName?.givenName
                 let familyName = credential.fullName?.familyName
                 let email = credential.email
+                let authCode = credential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
                 
                 let request = FetchDescriptor<AppUser>(predicate: #Predicate { $0.appleUserId == userId })
                 
                 do {
                     let existingUsers = try modelContext.fetch(request)
                     if existingUsers.isEmpty {
-                        let newUser = AppUser(appleUserId: userId, firstName: givenName, lastName: familyName, email: email)
+                        let newUser = AppUser(appleUserId: userId, firstName: givenName, lastName: familyName, email: email, authorizationCode: authCode)
                         modelContext.insert(newUser)
+                    } else if let existingUser = existingUsers.first, let code = authCode {
+                        existingUser.authorizationCode = code
                     }
                     try modelContext.save()
                     session.upgradeFromGuest()

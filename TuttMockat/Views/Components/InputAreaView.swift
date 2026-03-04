@@ -51,7 +51,9 @@ struct InputAreaView: View {
                     .overlay { highlightBorder }
                     .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
 
-                glassTrailingButton
+                if !text.isEmpty {
+                    glassTrailingButton
+                }
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -61,16 +63,16 @@ struct InputAreaView: View {
     @available(iOS 26, *)
     private var glassTrailingButton: some View {
         Button {
-            if !text.isEmpty { onSend() } else { onAccessoryTap() }
+            onSend()
         } label: {
-            Image(systemName: text.isEmpty ? "mic" : "arrow.up")
+            Image(systemName: "arrow.up")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: buttonSize, height: buttonSize)
         }
         .glassEffect(.regular.tint(.accentColor).interactive(), in: .circle)
         .disabled(!isEnabled)
-        .accessibilityLabel(text.isEmpty ? "Record Voice Message" : "Send Message")
+        .accessibilityLabel("Send Message")
     }
 
     // MARK: - iOS 15+ Fallback (ultraThinMaterial)
@@ -81,7 +83,9 @@ struct InputAreaView: View {
                 .overlay { highlightBorder }
                 .background(.regularMaterial, in: .rect(cornerRadius: cornerRadius))
 
-            materialTrailingButton
+            if !text.isEmpty {
+                materialTrailingButton
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -90,16 +94,16 @@ struct InputAreaView: View {
 
     private var materialTrailingButton: some View {
         Button {
-            if !text.isEmpty { onSend() } else { onAccessoryTap() }
+            onSend()
         } label: {
-            Image(systemName: text.isEmpty ? "mic" : "arrow.up")
+            Image(systemName: "arrow.up")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: buttonSize, height: buttonSize)
         }
         .background(Color.accentColor, in: .circle)
         .disabled(!isEnabled)
-        .accessibilityLabel(text.isEmpty ? "Record Voice Message" : "Send Message")
+        .accessibilityLabel("Send Message")
     }
 
     // MARK: - Shared subviews

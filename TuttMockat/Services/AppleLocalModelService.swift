@@ -54,24 +54,14 @@ class AppleLocalModelService {
         do {
             let response = try await freshSession.respond(to: promptContext)
             
-            let mirror = Mirror(reflecting: response)
-            var extractedText = ""
-            
-            for child in mirror.children {
-                if let label = child.label, label != "userPrompt", let value = child.value as? String {
-                    extractedText = value
-                    break
-                }
-            }
-            
-            if extractedText.isEmpty {
-                extractedText = String(describing: response)
-            }
+            // Use the public String(describing:) API instead of Mirror reflection
+            // to avoid private API usage detection during App Store review.
+            let extractedText = String(describing: response)
             
             return extractedText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             
         } catch {
-            print("Errore del Foundation Model: \(error.localizedDescription)")
+            print("Foundation Model Error: \(error.localizedDescription)")
             throw error
         }
     }

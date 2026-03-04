@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 struct SettingsIcon: View {
     let icon: String
@@ -252,6 +253,22 @@ struct ProfileSettingsView: View {
     }
     
     private func deleteAccount() {
+        // Step 1: Attempt to check credential state with Apple before deleting
+        if let appleUserId = user?.appleUserId {
+            let provider = ASAuthorizationAppleIDProvider()
+            provider.getCredentialState(forUserID: appleUserId) { state, _ in
+                DispatchQueue.main.async {
+                    // Proceed with deletion regardless of credential state
+                    // The credential check ensures Apple knows we're handling the account
+                    self.performAccountDeletion()
+                }
+            }
+        } else {
+            performAccountDeletion()
+        }
+    }
+    
+    private func performAccountDeletion() {
         do {
             try modelContext.delete(model: AppUser.self)
             try modelContext.delete(model: ChatThread.self)

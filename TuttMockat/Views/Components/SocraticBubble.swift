@@ -20,7 +20,7 @@ struct SocraticBubble: View {
                     .padding(.horizontal, 4)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(message.isUser ? "You said: \\(message.text)" : "Architect said: \\(message.text)")
+            .accessibilityLabel(message.isUser ? "You said: \(message.text)" : "Architect said: \(message.text)")
             
             if !message.isUser { Spacer() }
         }

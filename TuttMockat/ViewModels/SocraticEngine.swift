@@ -163,7 +163,7 @@ class SocraticEngine: ObservableObject {
         if let lastTime = lastAIResponseTime {
             let timeElapsed = Date().timeIntervalSince(lastTime)
             if timeElapsed < 3.0 && profile.currentPhase != .phase1_xRay {
-                let warningMsg = Message(text: "Hai risposto troppo in fretta. Fermati 10 secondi a pensarci davvero, poi riscrivi.", isUser: false)
+                let warningMsg = Message(text: "You responded too quickly. Stop and think about it for 10 seconds, then rewrite your message.", isUser: false)
                 withAnimation { self.messages.append(warningMsg) }
                 return
             }
@@ -199,7 +199,7 @@ class SocraticEngine: ObservableObject {
     private func fetchSocraticResponse(for originalUserText: String, context: SwiftData.ModelContext?) async {
         #if canImport(FoundationModels)
         guard #available(iOS 18.0, macOS 15.0, *), let service = aiService as? AppleLocalModelService else {
-            await simulateError(customMessage: "Apple Intelligence non supportata su questo OS. È richiesto iOS 18 o macOS 15.")
+            await simulateError(customMessage: "Apple Intelligence is not supported on this OS version. iOS 18 or macOS 15 is required.")
             return
         }
         
@@ -243,12 +243,12 @@ class SocraticEngine: ObservableObject {
             await MainActor.run {
                 if errorString.contains("assetsUnavailable") || errorString.contains("UnifiedAssetFramework") {
                     let missingAssetsMessage = """
-                    SYSTEM ERROR: I modelli di Apple Intelligence non sono presenti su questo dispositivo.
-                    
-                    Per risolvere:
-                    1. Usa un dispositivo fisico (iPhone 15 Pro+, Mac M1+).
-                    2. Vai su Impostazioni > Apple Intelligence e Siri e accertati che la funzione sia ATTIVA.
-                    """
+                     SYSTEM ERROR: Apple Intelligence models are not available on this device.
+                     
+                     To resolve:
+                     1. Use a physical device (iPhone 15 Pro+, Mac M1+).
+                     2. Go to Settings > Apple Intelligence & Siri and make sure the feature is ON.
+                     """
                     self.simulateError(customMessage: missingAssetsMessage)
                 } else if errorString.contains("contextWindow") || errorString.contains("exceed") || errorString.contains("token") {
                     // Auto-recovery: trim oldest messages and reset service state
@@ -257,15 +257,15 @@ class SocraticEngine: ObservableObject {
                         self.messages = keptMessages
                         service.resetSession()
                         self.isTyping = false
-                        let recoveryMsg = Message(text: "⚡ Ho ottimizzato la memoria della conversazione per continuare. Puoi ripetere la tua ultima domanda?", isUser: false)
+                        let recoveryMsg = Message(text: "⚡ I've optimized the conversation memory to continue. Could you repeat your last question?", isUser: false)
                         withAnimation { self.messages.append(recoveryMsg) }
                         if let ctx = context { self.syncToThread(context: ctx) }
                     } else {
-                        self.simulateError(customMessage: "SYSTEM ERROR: La conversazione è troppo densa per il modello locale. Prova a iniziare una nuova sessione.")
+                        self.simulateError(customMessage: "SYSTEM ERROR: The conversation is too dense for the local model. Try starting a new session.")
                     }
                 } else if errorString.contains("guardrail") || errorString.contains("unsafe") || errorString.contains("sensitive") {
                     self.isTyping = false
-                    let safeMsg = Message(text: "Non posso elaborare questa richiesta in questo modo. Come ingegnere, prova a riformulare il problema concentrandoti sulla logica e sul codice, evitando termini ambigui. Qual è l'obiettivo tecnico?", isUser: false)
+                    let safeMsg = Message(text: "I can't process this request in that way. As an engineer, try rephrasing the problem by focusing on the logic and code, avoiding ambiguous terms. What is the technical objective?", isUser: false)
                     withAnimation { self.messages.append(safeMsg) }
                     if let ctx = context { self.syncToThread(context: ctx) }
                 } else {
@@ -274,7 +274,7 @@ class SocraticEngine: ObservableObject {
             }
         }
         #else
-        await simulateError(customMessage: "Framework FoundationModels non incluso in questa build.")
+        await simulateError(customMessage: "FoundationModels framework is not included in this build.")
         #endif
     }
     

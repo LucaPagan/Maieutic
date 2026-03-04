@@ -12,7 +12,6 @@ struct ChatSessionView: View {
     @Query private var users: [AppUser]
 
     @State private var inputText: String = ""
-    @State private var showFeatureAlert = false
     @State private var showProfileSettings = false
 
     var body: some View {
@@ -51,11 +50,11 @@ struct ChatSessionView: View {
                                 withAnimation {
                                     engine.profile.currentPhase = .phase1_xRay
                                 }
-                                engine.sendMessage("Non credo di arrivarci da solo, potresti svelarmi la risposta?", context: session.isGuestMode ? nil : modelContext)
+                                engine.sendMessage("I don't think I can figure this out on my own, could you reveal the answer?", context: session.isGuestMode ? nil : modelContext)
                             } label: {
                                 HStack {
                                     Image(systemName: "lightbulb.fill")
-                                    Text("Svelami la risposta")
+                                    Text("Reveal the answer")
                                 }
                                 .font(.system(.footnote, design: .rounded).bold())
                                 .foregroundColor(.white)
@@ -72,10 +71,7 @@ struct ChatSessionView: View {
                         InputAreaView(text: $inputText, isEnabled: engine.isModelAvailable, showBorder: !isSidebarOpened, onSend: {
                             engine.sendMessage(inputText, context: session.isGuestMode ? nil : modelContext)
                             inputText = ""
-                        }, onAccessoryTap: {
-                            triggerHapticFeedback()
-                            showFeatureAlert = true
-                        })
+                        }, onAccessoryTap: {})
                     }
                 }
             }
@@ -95,7 +91,7 @@ struct ChatSessionView: View {
                         Text("Maieutic")
                             .font(.system(.headline, design: .rounded))
                             .fontWeight(.bold)
-                        Text("Fase \(engine.profile.currentPhase.rawValue) • \(engine.connectionStatus)")
+                        Text("Phase \(engine.profile.currentPhase.rawValue) • \(engine.connectionStatus)")
                             .font(.system(.caption2, design: .monospaced))
                             .foregroundColor(engine.connectionStatus.contains("Error") ? .red : .accentColor)
                     }
@@ -138,11 +134,6 @@ struct ChatSessionView: View {
             } else {
                 engine.startNewSession()
             }
-        }
-        .alert("Text-Only Protocol", isPresented: $showFeatureAlert) {
-            Button("Got it", role: .cancel) { }
-        } message: {
-            Text("The current cognitive rehabilitation phase requires text-based interaction to effectively rebuild mental models. Media attachments are disabled.")
         }
         .sheet(isPresented: $showProfileSettings) {
             ProfileSettingsView(profile: $profile, user: users.first)
