@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct TuttMockatApp: App {
@@ -13,5 +14,6 @@ struct TuttMockatApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [AppUser.self, InteractionMetric.self, ChatThread.self])
     }
 }
