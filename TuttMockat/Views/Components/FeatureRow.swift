@@ -9,7 +9,7 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.teal)
+                .foregroundStyle(Color.accentColor.gradient)
                 .frame(width: 30)
                 .accessibilityHidden(true)
             

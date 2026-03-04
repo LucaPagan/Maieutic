@@ -13,7 +13,7 @@ struct TypingIndicatorView: View {
             }
         }
         .padding(12)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .background(Color(.systemGray5))
         .cornerRadius(12)
         .onAppear { anim = true }
         .frame(maxWidth: .infinity, alignment: .leading)

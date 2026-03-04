@@ -4,6 +4,7 @@ import SwiftData
 
 struct SignInView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
     @Query private var users: [AppUser]
     
     var body: some View {
@@ -12,7 +13,7 @@ struct SignInView: View {
             
             Image(systemName: "lock.shield.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.teal)
+                .foregroundStyle(Color.accentColor.gradient)
                 .accessibilityHidden(true)
             
             VStack(spacing: 8) {
@@ -34,13 +35,14 @@ struct SignInView: View {
             } onCompletion: { result in
                 handleSignIn(result: result)
             }
-            .signInWithAppleButtonStyle(.black)
+            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
             .frame(height: 50)
             .padding(.horizontal, 32)
             .padding(.bottom, 40)
             .accessibilityLabel("Sign In with Apple")
         }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .background(colorScheme == .dark ? Color(white: 0.11) : Color(white: 0.96))
+        .ignoresSafeArea()
     }
     
     private func handleSignIn(result: Result<ASAuthorization, Error>) {
@@ -59,7 +61,7 @@ struct SignInView: View {
                     let existingUsers = try modelContext.fetch(request)
                     if existingUsers.isEmpty {
                         // Nuovo utente
-                        let newUser = AppUser(appleUserId: userId, firstName: givenName, lastName: familyName, email: email, hasSeenWelcome: false)
+                        let newUser = AppUser(appleUserId: userId, firstName: givenName, lastName: familyName, email: email)
                         modelContext.insert(newUser)
                     } else {
                         // Utente esistente: SwiftData traccia automaticamente le entità

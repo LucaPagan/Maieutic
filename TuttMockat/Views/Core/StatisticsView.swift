@@ -4,10 +4,10 @@ import SwiftData
 
 struct StatisticsView: View {
     @Query(sort: \InteractionMetric.date, order: .forward) private var metrics: [InteractionMetric]
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
+        ScrollView {
                 VStack(spacing: 24) {
                     
                     // Header metrics
@@ -21,7 +21,7 @@ struct StatisticsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "info.circle.fill")
-                                .foregroundColor(.teal)
+                                .foregroundStyle(Color.accentColor.gradient)
                             Text("How to read your progress")
                                 .font(.headline)
                         }
@@ -33,13 +33,18 @@ struct StatisticsView: View {
                         
                         Text("Watch the **Dependency Trend** chart below: your goal is to push the curve downwards over time as you build more confidence in your skills.")
                             .font(.caption)
-                            .foregroundColor(.teal)
+                            .foregroundColor(.accentColor)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 2)
                     }
                     .padding()
-                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                    .background(.regularMaterial)
                     .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
                     .padding(.horizontal)
                     
                     // Chart
@@ -61,20 +66,20 @@ struct StatisticsView: View {
                                         y: .value("Dependency Score", metric.dependencyScore)
                                     )
                                     .interpolationMethod(.monotone)
-                                    .foregroundStyle(Color.teal.gradient)
+                                    .foregroundStyle(Color.accentColor.gradient)
                                     
                                     AreaMark(
                                         x: .value("Interaction", metric.date),
                                         y: .value("Dependency Score", metric.dependencyScore)
                                     )
                                     .interpolationMethod(.monotone)
-                                    .foregroundStyle(Color.teal.opacity(0.1).gradient)
+                                    .foregroundStyle(Color.accentColor.opacity(0.1).gradient)
                                     
                                     PointMark(
                                         x: .value("Interaction", metric.date),
                                         y: .value("Dependency Score", metric.dependencyScore)
                                     )
-                                    .foregroundStyle(Color.teal)
+                                    .foregroundStyle(Color.accentColor)
                                 }
                             }
                             .frame(height: 250)
@@ -91,16 +96,20 @@ struct StatisticsView: View {
                             }
                         }
                         .padding()
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                        .background(.regularMaterial)
                         .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
                         .padding(.horizontal)
                     }
                 }
                 .padding(.vertical)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(colorScheme == .dark ? Color(white: 0.11) : Color(white: 0.96))
             .navigationTitle("Your Progress")
-        }
     }
     
     private var averageScore: String {
@@ -122,8 +131,13 @@ struct StatisticsView: View {
                 .multilineTextAlignment(.center)
         }
         .padding(40)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .background(.regularMaterial)
         .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
         .padding()
     }
 }
@@ -149,7 +163,12 @@ struct MetricCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .background(.regularMaterial)
         .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
     }
 }

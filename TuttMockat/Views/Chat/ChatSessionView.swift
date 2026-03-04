@@ -3,68 +3,131 @@ import SwiftData
 
 struct ChatSessionView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var session: GuestSessionManager
     @StateObject private var engine = SocraticEngine()
     @Binding var profile: CalibrationProfile
     @Binding var isSidebarOpened: Bool
     @Binding var activeThread: ChatThread?
-    
+    @Binding var showStatistics: Bool
+    @Query private var users: [AppUser]
+
     @State private var inputText: String = ""
     @State private var showFeatureAlert = false
     @State private var showProfileSettings = false
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            HeaderView(status: engine.connectionStatus) {
-                // onMenuTap
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isSidebarOpened.toggle()
+        NavigationStack {
+            VStack(spacing: 0) {
+                ZStack(alignment: .bottom) {
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                ForEach(engine.messages) { message in
+                                    SocraticBubble(message: message)
+                                        .id(message.id)
+                                }
+                                if engine.isTyping {
+                                    TypingIndicatorView()
+                                        .transition(.opacity)
+                                }
+                            }
+                            .padding(.top, 16)
+                            .padding(.bottom, 120)
+                        }
+                        .background(Color.clear)
+                        .scrollDismissesKeyboard(.interactively)
+                        .onTapGesture { hideKeyboard() }
+                        .onChange(of: engine.messages) { _ in
+                            if let last = engine.messages.last {
+                                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                            }
+                        }
+                    }
+
+                    VStack(spacing: 0) {
+                        if engine.profile.currentPhase == .phase2_scaffold && !engine.isTyping {
+                            Button {
+                                triggerHapticFeedback()
+                                withAnimation {
+                                    engine.profile.currentPhase = .phase1_xRay
+                                }
+                                engine.sendMessage("Non credo di arrivarci da solo, potresti svelarmi la risposta?", context: session.isGuestMode ? nil : modelContext)
+                            } label: {
+                                HStack {
+                                    Image(systemName: "lightbulb.fill")
+                                    Text("Svelami la risposta")
+                                }
+                                .font(.system(.footnote, design: .rounded).bold())
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .background(Color.orange.gradient)
+                                .clipShape(Capsule())
+                                .shadow(color: .orange.opacity(0.3), radius: 4, y: 2)
+                            }
+                            .padding(.bottom, 8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+
+                        InputAreaView(text: $inputText, isEnabled: engine.isModelAvailable, showBorder: !isSidebarOpened, onSend: {
+                            engine.sendMessage(inputText, context: session.isGuestMode ? nil : modelContext)
+                            inputText = ""
+                        }, onAccessoryTap: {
+                            triggerHapticFeedback()
+                            showFeatureAlert = true
+                        })
+                    }
                 }
-            } onProfileTap: {
-                showProfileSettings = true
             }
-            .zIndex(1)
-            
-            ZStack(alignment: .bottom) {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(engine.messages) { message in
-                                SocraticBubble(message: message)
-                                    .id(message.id)
-                            }
-                            if engine.isTyping {
-                                TypingIndicatorView()
-                                    .transition(.opacity)
-                            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        withAnimation(.smooth(duration: 0.3)) {
+                            isSidebarOpened.toggle()
                         }
-                        .padding(.top, 16)
-                        .padding(.bottom, 90)
-                    }
-                    .background(Color.clear)
-                    .onTapGesture { hideKeyboard() }
-                    .onChange(of: engine.messages) { _ in
-                        if let last = engine.messages.last {
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        }
+                    } label: {
+                        Image(systemName: "sidebar.left")
+                            .font(.system(size: 16, weight: .medium))
                     }
                 }
-                
-                InputAreaView(text: $inputText, isEnabled: engine.isModelAvailable, onSend: {
-                    engine.sendMessage(inputText, context: modelContext)
-                    inputText = ""
-                }, onAccessoryTap: {
-                    triggerHapticFeedback()
-                    showFeatureAlert = true
-                })
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 1) {
+                        Text("Maieutic")
+                            .font(.system(.headline, design: .rounded))
+                            .fontWeight(.bold)
+                        Text("Fase \(engine.profile.currentPhase.rawValue) • \(engine.connectionStatus)")
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundColor(engine.connectionStatus.contains("Error") ? .red : .accentColor)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if session.isGuestMode {
+                            session.requestUpgrade()
+                        } else {
+                            showProfileSettings = true
+                        }
+                    } label: {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 24))
+                            .foregroundStyle(Color.accentColor.gradient)
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $showStatistics) {
+                StatisticsView()
             }
         }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
         .onAppear {
             if let thread = activeThread {
                 engine.loadThread(thread)
             } else {
                 engine.configure(with: profile)
             }
+            engine.updateNickname(users.first?.nickname)
+        }
+        .onChange(of: users) { _ in
+            engine.updateNickname(users.first?.nickname)
         }
         .onChange(of: profile) { newProfile in
             engine.updateProfileContext(newProfile)
@@ -82,7 +145,10 @@ struct ChatSessionView: View {
             Text("The current cognitive rehabilitation phase requires text-based interaction to effectively rebuild mental models. Media attachments are disabled.")
         }
         .sheet(isPresented: $showProfileSettings) {
-            ProfileSettingsView(profile: $profile)
+            ProfileSettingsView(profile: $profile, user: users.first)
+        }
+        .sheet(isPresented: $session.showUpgradeSheet) {
+            GuestUpgradeSheet(feature: "profile settings")
         }
     }
 }
