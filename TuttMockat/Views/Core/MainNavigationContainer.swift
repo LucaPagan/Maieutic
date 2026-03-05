@@ -40,8 +40,8 @@ struct MainNavigationContainer: View {
                     radius: 12,
                     x: -4
                 )
-                .highPriorityGesture(
-                    DragGesture(minimumDistance: 15)
+                .gesture(
+                    DragGesture(minimumDistance: 10)
                         .onChanged { value in
                             let horizontal = abs(value.translation.width)
                             let vertical = abs(value.translation.height)

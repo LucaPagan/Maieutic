@@ -32,10 +32,11 @@ struct ChatSessionView: View {
                             }
                             .padding(.top, 16)
                             .padding(.bottom, 120)
+                            .contentShape(Rectangle())
+                            .onTapGesture { hideKeyboard() }
                         }
                         .background(Color.clear)
                         .scrollDismissesKeyboard(.interactively)
-                        .onTapGesture { hideKeyboard() }
                         .onChange(of: engine.messages) { _ in
                             if let last = engine.messages.last {
                                 withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }

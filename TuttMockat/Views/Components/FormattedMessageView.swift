@@ -1,15 +1,22 @@
 import SwiftUI
 
-/// A view that parses message text and renders code blocks with proper formatting.
-/// Supports triple-backtick fenced code blocks (``` ... ```) and inline code (`...`).
+/// A view that parses message text and renders code blocks and headers with proper formatting.
+/// Supports triple-backtick fenced code blocks (``` ... ```), inline code (`...`), and Markdown headers (#).
 struct FormattedMessageView: View {
     let text: String
     let isUser: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             ForEach(Array(parseBlocks().enumerated()), id: \.offset) { _, block in
                 switch block {
+                case .header(let level, let content):
+                    renderSemanticText(content)
+                        .font(headerFont(for: level))
+                        .foregroundColor(isUser ? .white : .primary)
+                        .padding(.top, level == 1 ? 8 : 4)
+                        .padding(.bottom, 2)
+                    
                 case .text(let content):
                     renderSemanticText(content)
                         .font(.system(.body, design: .rounded))
@@ -59,6 +66,17 @@ struct FormattedMessageView: View {
         }
     }
     
+    // MARK: - Typography
+    
+    private func headerFont(for level: Int) -> Font {
+        switch level {
+        case 1: return .system(.title2, design: .rounded).bold()
+        case 2: return .system(.title3, design: .rounded).bold()
+        case 3: return .system(.headline, design: .rounded).bold()
+        default: return .system(.subheadline, design: .rounded).bold()
+        }
+    }
+    
     // MARK: - Code Block Colors
     
     private var codeBackgroundColor: Color {
@@ -79,14 +97,14 @@ struct FormattedMessageView: View {
     
     // MARK: - Parsing Engine
     
-    /// Content block type — either plain text or a fenced code block.
+    /// Content block type — either plain text, a fenced code block, or a header.
     private enum ContentBlock {
         case text(String)
         case code(language: String, content: String)
+        case header(level: Int, text: String)
     }
     
-    /// Parses the message text into an array of text and code blocks.
-    /// Supports both triple-backtick fenced blocks and falls back to plain text.
+    /// Parses the message text into an array of text, code, and header blocks.
     private func parseBlocks() -> [ContentBlock] {
         var blocks: [ContentBlock] = []
         let lines = text.components(separatedBy: "\n")
@@ -101,13 +119,9 @@ struct FormattedMessageView: View {
             
             if trimmed.hasPrefix("```") && !insideCodeBlock {
                 // Flush accumulated text
-                let textContent = currentTextLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-                if !textContent.isEmpty {
-                    blocks.append(.text(textContent))
-                }
-                currentTextLines.removeAll()
+                flushText(&currentTextLines, into: &blocks)
                 
-                // Start code block — extract optional language identifier
+                // Start code block
                 codeLanguage = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
                 insideCodeBlock = true
                 currentCodeLines.removeAll()
@@ -122,6 +136,14 @@ struct FormattedMessageView: View {
                 
             } else if insideCodeBlock {
                 currentCodeLines.append(line)
+            } else if trimmed.hasPrefix("#") && !insideCodeBlock {
+                // Flush accumulated text
+                flushText(&currentTextLines, into: &blocks)
+                
+                // Parse header
+                let level = trimmed.prefix(while: { $0 == "#" }).count
+                let headerText = trimmed.drop(while: { $0 == "#" || $0 == " " })
+                blocks.append(.header(level: level, text: String(headerText)))
             } else {
                 currentTextLines.append(line)
             }
@@ -129,25 +151,28 @@ struct FormattedMessageView: View {
         
         // Flush remaining content
         if insideCodeBlock {
-            // Unclosed code block — still render it as code
             let codeContent = currentCodeLines.joined(separator: "\n")
             if !codeContent.isEmpty {
                 blocks.append(.code(language: codeLanguage, content: codeContent))
             }
         }
         
-        let remainingText = currentTextLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        if !remainingText.isEmpty {
-            blocks.append(.text(remainingText))
-        }
-        
+        flushText(&currentTextLines, into: &blocks)
         
         // If no blocks were produced (shouldn't happen), fallback to plain text
-        if blocks.isEmpty {
+        if blocks.isEmpty && !text.isEmpty {
             blocks.append(.text(text))
         }
         
         return blocks
+    }
+    
+    private func flushText(_ lines: inout [String], into blocks: inout [ContentBlock]) {
+        let textContent = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !textContent.isEmpty {
+            blocks.append(.text(textContent))
+        }
+        lines.removeAll()
     }
     
     // MARK: - Semantic Text Renderer
