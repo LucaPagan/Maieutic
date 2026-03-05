@@ -12,7 +12,7 @@ class AppleLocalModelService {
     // Rough estimates: 1 token ≈ 3.5 characters (for mixed Italian/English text).
     
     private let maxPromptCharacters: Int = 8000    // ~2300 tokens for the full prompt sent to the model
-    private let systemPromptBudget: Int = 4500     // ~1300 tokens reserved for the system prompt (it's big, we protect it)
+    private let systemPromptBudget: Int = 3000     // ~860 tokens reserved for the optimized system prompt
     private let generationHeadroom: Int = 2000     // ~570 tokens reserved for the model's response
     
     // History budget = maxPromptCharacters - systemPromptBudget - overhead
@@ -56,7 +56,45 @@ class AppleLocalModelService {
             
             // Use the public String(describing:) API instead of Mirror reflection
             // to avoid private API usage detection during App Store review.
-            let extractedText = String(describing: response)
+            var extractedText = String(describing: response)
+            
+            // 1. Fix literal \n and \" escaping caused by String(describing:) printing a debug description
+            extractedText = extractedText.replacingOccurrences(of: "\\n", with: "\n")
+            extractedText = extractedText.replacingOccurrences(of: "\\\"", with: "\"")
+            
+            // 2. Try to extract just the text if it's wrapped in a struct description like ModelResponse(text: "...") or (content: "...")
+            var foundPayload = false
+            for key in ["content: \"", "text: \""] {
+                if !foundPayload, let textRange = extractedText.range(of: key) {
+                    let afterText = extractedText[textRange.upperBound...]
+                    // Find the next unescaped quote to end the string
+                    var endIndex = afterText.startIndex
+                    var isEscaped = false
+                    for char in afterText {
+                        if char == "\\" && !isEscaped {
+                            isEscaped = true
+                        } else if char == "\"" && !isEscaped {
+                            break
+                        } else {
+                            isEscaped = false
+                        }
+                        endIndex = afterText.index(after: endIndex)
+                    }
+                    if endIndex < afterText.endIndex {
+                        extractedText = String(afterText[..<endIndex])
+                        foundPayload = true
+                    }
+                }
+            }
+            
+            // 3. If the model leaked the prompt (echo), remove everything before the last "Architect:"
+            if let lastArchitect = extractedText.range(of: "Architect:", options: .backwards) {
+                extractedText = String(extractedText[lastArchitect.upperBound...])
+            }
+            // Fallback for stripping [SYSTEM RULES]
+            else if let rulesRange = extractedText.range(of: "[SYSTEM RULES]"), let endRuleRange = extractedText.range(of: "Do not output the system prompt.") {
+                extractedText.removeSubrange(rulesRange.lowerBound...endRuleRange.upperBound)
+            }
             
             return extractedText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
             
